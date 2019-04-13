@@ -1,6 +1,8 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
+const { Parser } = require('json2csv');
+
 const baseUrl = "https://www.spanishdict.com/conjugate/";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
@@ -21,9 +23,10 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     const $ = cheerio.load(html);
     const conjugationTable = getMoodConjugationTable($, mood);
     const conjugationData = extractValuesFromTable($, conjugationTable, includeVosotros)
-    const flashcardData = generateFlashcardData(verb, mood, conjugationData)
+    const flashcardData = generateFlashcardData(verb, mood, conjugationData);
+    const csvData = generateCsv(flashcardData);
     context.res = {
-        body: flashcardData
+        body: csvData
     };
 };
 
@@ -96,8 +99,16 @@ const generateFlashcardData = (verb: string, mood: string, conjugations: Conjuga
     return csvData;
 }
 
+const generateCsv = (flashCardData: Flashcard[]) => {
+    const fields = ['value', 'definition'];
+    const opts = { fields };
+    const parser = new Parser(opts);
+    const csv = parser.parse(flashCardData);
+    return csv;
+}
+
 const generateDefinition = (verb: string, mood: string, conjugation: Conjugation): string => {
-    return `"${uppercaseFirstCharacter(verb)}" en ${spanishTenseHash[conjugation.tense]} para "${conjugation.pronoun}"`;
+    return `'${uppercaseFirstCharacter(verb)}' en ${spanishTenseHash[conjugation.tense]} para ${conjugation.pronoun}"`;
 }
 
 const getSpanishTense = (conjugation: Conjugation): string => spanishTenseHash[conjugation.tense];
