@@ -97,7 +97,7 @@ const generateFlashcardData = (verb: string, mood: string, conjugations: Conjuga
 }
 
 const generateDefinition = (verb: string, mood: string, conjugation: Conjugation): string => {
-    return `"${verb}" en ${spanishTenseHash[conjugation.tense]} para "${conjugation.pronoun}"`;
+    return `"${uppercaseFirstCharacter(verb)}" en ${spanishTenseHash[conjugation.tense]} para "${conjugation.pronoun}"`;
 }
 
 const getSpanishTense = (conjugation: Conjugation): string => spanishTenseHash[conjugation.tense];
