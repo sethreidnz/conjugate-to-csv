@@ -5,7 +5,8 @@ const baseUrl = "https://www.spanishdict.com/conjugate/";
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
     const verb = (req.query.verb);
-    const mood = (uppercaseFirstCharacter(req.query.mood));
+    const mood = req.query.mood && (uppercaseFirstCharacter(req.query.mood));
+    const includeVosotros = req.query.includeVosotros && (uppercaseFirstCharacter(req.query.includeVosotros));
 
     if (!verb || !mood) {
         context.res = {
@@ -19,13 +20,14 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
     const html = await response.text();
     const $ = cheerio.load(html);
     const conjugationTable = getMoodConjugationTable($, mood);
-    const conjugationData = extractValuesFromTable($, conjugationTable)
+    const conjugationData = extractValuesFromTable($, conjugationTable, includeVosotros)
+    const flashcardData = generateFlashcardData(verb, mood, conjugationData)
     context.res = {
-        body: conjugationData
+        body: flashcardData
     };
 };
 
-const extractValuesFromTable = ($, table: any): Conjugation[] => {
+const extractValuesFromTable = ($, table: any, includeVosotros: boolean = false): Conjugation[] => {
     const rows = table.children('tbody').children('tr');
     let tenses: string[] = [];
     let conjugations: Conjugation[] = [];
@@ -35,7 +37,7 @@ const extractValuesFromTable = ($, table: any): Conjugation[] => {
         if (index === 0) {
             tenses = getTenses($, columns)
         } else {
-            const conjugationsFromRow = getConjugations($, columns, tenses)
+            const conjugationsFromRow = getConjugations($, columns, tenses, includeVosotros)
             conjugations = conjugations.concat(conjugationsFromRow);
         }
     }
@@ -47,25 +49,28 @@ const getTenses = ($, columns): string[] => {
     for (let index = 0; index < columns.length; index++) {
         if (index > 0) { // the first heading is empty
             const tense = $(columns[index]).text();
-            tenses.push(tense)
+            tenses.push(tense.toLowerCase())
         }
     }
     return tenses;
 }
 
-const getConjugations = ($, columns, tenses): Conjugation[] => {
+const getConjugations = ($, columns, tenses, includeVosotros: boolean = false): Conjugation[] => {
     let conjugations: Conjugation[] = [];
-    let subject: string;
+    let pronoun: string;
     for (let index = 0; index < columns.length; index++) {
         const column = $(columns[index]);
-        if (index === 0) { // the first heading is the subject
-            subject = $(column).text();
-        } else {
+        if (index === 0) { // the first heading is the pronoun
+            pronoun = $(column).text();
+        } else if (!includeVosotros && pronoun !== 'vosotros') {
+            if (!includeVosotros && pronoun === 'vosotros') {
+                continue;
+            }
             const word = $(column).text();
             conjugations.push({
                 word,
-                tense: tenses[index - 1],
-                subject
+                pronoun,
+                tense: tenses[index - 1]
             });
         }
     }
@@ -77,15 +82,43 @@ const getMoodConjugationTable = ($: any, mood: string) => {
     return tableWrapper.children('table').first();
 }
 
-function uppercaseFirstCharacter(string) 
-{
+const uppercaseFirstCharacter = (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+const generateFlashcardData = (verb: string, mood: string, conjugations: Conjugation[]): Flashcard[] => {
+    const csvData = conjugations.map(conjugation => {
+        return {
+            value: conjugation.word,
+            definition: generateDefinition(verb, mood, conjugation)
+        }
+    });
+    return csvData;
+}
+
+const generateDefinition = (verb: string, mood: string, conjugation: Conjugation): string => {
+    return `"${verb}" en ${spanishTenseHash[conjugation.tense]} para "${conjugation.pronoun}"`;
+}
+
+const getSpanishTense = (conjugation: Conjugation): string => spanishTenseHash[conjugation.tense];
+
+const spanishTenseHash = {
+    "present": "tiempo presente",
+    "preterite": "tiempo pasado perfecto",
+    "imperfect": "tiempo pasado imperfecto",
+    "conditional": "tiempo condicional futuro",
+    "future": "tiempo futuro"
 }
 
 interface Conjugation {
     word: string;
+    pronoun: string;
     tense: string;
-    subject: string;
+}
+
+interface Flashcard {
+    value: string;
+    definition: string;
 }
 
 export default httpTrigger;
