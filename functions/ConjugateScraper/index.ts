@@ -108,10 +108,8 @@ const generateCsv = (flashCardData: Flashcard[]) => {
 }
 
 const generateDefinition = (verb: string, mood: string, conjugation: Conjugation): string => {
-    return `'${uppercaseFirstCharacter(verb)}' en ${spanishTenseHash[conjugation.tense]} para ${conjugation.pronoun}"`;
+    return `'${verb}' en ${spanishTenseHash[conjugation.tense]} para '${conjugation.pronoun}'`;
 }
-
-const getSpanishTense = (conjugation: Conjugation): string => spanishTenseHash[conjugation.tense];
 
 const spanishTenseHash = {
     "present": "tiempo presente",
