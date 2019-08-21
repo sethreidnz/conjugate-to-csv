@@ -9,19 +9,25 @@ const httpTrigger: AzureFunction = async function(
   context: Context,
   req: HttpRequest
 ): Promise<void> {
-  const verb = req.query.verb;
+  const verbs = req.query.verbs;
   const mood = req.query.mood && uppercaseFirstCharacter(req.query.mood);
   const includeVosotros =
     req.query.includeVosotros &&
     uppercaseFirstCharacter(req.query.includeVosotros);
 
-  if (!verb || !mood) {
+  if (!verbs || !mood) {
     context.res = {
       status: 400,
       body: "You must supply the 'verb' and the 'mood' parameters"
     };
   }
-  const verbData = await getVerbData(verb, mood, includeVosotros);
+
+  // generate the data
+  const verbData = [];
+  const verbNames = verbs.split(",");
+  verbNames.forEach(async verb => {
+    verbData.push(await getVerbData(verb, mood, includeVosotros));
+  })
   const csv = generateCsv(verbData);
   context.res = {
     body: csv
