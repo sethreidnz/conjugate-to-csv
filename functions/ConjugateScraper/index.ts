@@ -23,12 +23,14 @@ const httpTrigger: AzureFunction = async function(
   }
 
   // generate the data
-  const verbData = [];
+  let allVerbDAta = [];
   const verbNames = verbs.split(",");
-  verbNames.forEach(async verb => {
-    verbData.push(await getVerbData(verb, mood, includeVosotros));
-  })
-  const csv = generateCsv(verbData);
+  for (let index = 0; index < verbNames.length; index++) {
+    const verb = verbNames[index];
+    const verbData = await getVerbData(verb, mood, includeVosotros)
+    allVerbDAta = [...allVerbDAta, ...verbData];
+  }
+  const csv = generateCsv(allVerbDAta);
   context.res = {
     body: csv
   };
