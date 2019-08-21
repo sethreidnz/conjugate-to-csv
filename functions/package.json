@@ -13,13 +13,13 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
-    "json2csv": "^4.4.1",
-    "node-fetch": "^2.3.0"
+    "json2csv": "^4.5.2",
+    "node-fetch": "^2.6.0"
   },
   "devDependencies": {
-    "@azure/functions": "^1.0.1-beta2",
-    "@types/cheerio": "^0.22.11",
-    "@types/node-fetch": "^2.3.2",
-    "typescript": "^3.3.3"
+    "@azure/functions": "^1.0.3",
+    "@types/cheerio": "^0.22.13",
+    "@types/node-fetch": "^2.5.0",
+    "typescript": "^3.5.3"
   }
 }
